@@ -9,14 +9,17 @@ import cPickle
 from sklearn.feature_extraction.text import CountVectorizer
 import pdb
 
-annotation_path = '/home/ubuntu/Data/xiaojun/Data/Flickr8k/Flickr8k.lemma.token.txt'
-vgg_deploy_path = 'VGG_ILSVRC_16_layers_deploy.prototxt'
-vgg_model_path = '/home/ubuntu/Data/xiaojun/models/vgg/VGG_ILSVRC_16_layers.caffemodel'
-flickr_image_path = '/home/ubuntu/Data/xiaojun/Data/Flickr8k/Flicker8k_Dataset'
-feat_path = 'feat/flickr8k'
-train_image_list = '/home/ubuntu/Data/xiaojun/Data/Flickr8k/Flickr_8k.trainImages.txt'
-test_image_list = '/home/ubuntu/Data/xiaojun/Data/Flickr8k/Flickr_8k.testImages.txt'
-dev_image_list = '/home/ubuntu/Data/xiaojun/Data/Flickr8k/Flickr_8k.devImages.txt'
+DATAPATH = os.getcwd() + os.sep + ".." + os.sep + "data" + os.sep
+
+annotation_path     = DATAPATH + 'Flickr8k_text' + os.sep + 'Flickr8k.lemma.token.txt'
+train_image_list    = DATAPATH + 'Flickr8k_text' + os.sep + 'Flickr_8k.trainImages.txt'
+test_image_list     = DATAPATH + 'Flickr8k_text' + os.sep + 'Flickr_8k.testImages.txt'
+dev_image_list      = DATAPATH + 'Flickr8k_text' + os.sep + 'Flickr_8k.devImages.txt'
+
+vgg_deploy_path     = DATAPATH + 'VGG_ILSVRC_16_layers_deploy.prototxt'
+vgg_model_path      = DATAPATH + 'VGG_ILSVRC_16_layers.caffemodel'
+flickr_image_path   = DATAPATH + 'Flicker8k_Dataset'
+feat_path           = DATAPATH + 'Flicker8k_features'
 
 annotations = pd.read_table(annotation_path, sep='\t', header=None, names=['image', 'caption'])
 
@@ -32,7 +35,7 @@ dictionary = vectorizer.vocabulary_
 dictionary_series = pd.Series(dictionary.values(), index=dictionary.keys()) + 2
 dictionary = dictionary_series.to_dict()
 
-with open('data/flickr8k/dictionary.pkl', 'wb') as f:
+with open(DATAPATH + 'Flickr8k_text' + os.sep + 'dictionary.pkl', 'w+') as f:
     cPickle.dump(dictionary, f)
 
 images = pd.Series(annotations['image'].unique())
@@ -77,7 +80,7 @@ for start, end in zip(range(0, len(images_train)+100, 100), range(100, len(image
 
     print "processing images %d to %d " % (start, end)
 
-with open('data/flickr8k/flicker_8k_align.train.pkl', 'wb') as f:
+with open(DATAPATH + 'flicker_8k_align.train.pkl', 'w+') as f:
     cPickle.dump(cap_train, f)
     cPickle.dump(feat_flatten_list_train, f)
 
@@ -98,7 +101,7 @@ for start, end in zip(range(0, len(images_test)+100, 100), range(100, len(images
 
     print "processing images %d to %d " % (start, end)
 
-with open('data/flickr8k/flicker_8k_align.test.pkl', 'wb') as f:
+with open(DATAPATH + 'flicker_8k_align.test.pkl', 'w+') as f:
     cPickle.dump(cap_test, f)
     cPickle.dump(feat_flatten_list_test, f)
 
@@ -119,6 +122,6 @@ for start, end in zip(range(0, len(images_dev)+100, 100), range(100, len(images_
 
     print "processing images %d to %d " % (start, end)
 
-with open('data/flickr8k/flicker_8k_align.dev.pkl', 'wb') as f:
+with open(DATAPATH + 'flicker_8k_align.dev.pkl', 'wb') as f:
     cPickle.dump(cap_dev, f)
     cPickle.dump(feat_flatten_list_dev, f)

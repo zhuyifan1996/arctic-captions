@@ -3,6 +3,9 @@ import cv2
 import numpy as np
 import skimage
 import ipdb
+import os
+
+DATAPATH = os.getcwd() + os.sep + ".." + os.sep + "data" + os.sep
 
 def crop_image(x, target_height=227, target_width=227):
     print x
@@ -24,9 +27,9 @@ def crop_image(x, target_height=227, target_width=227):
 
     return cv2.resize(resized_image, (target_height, target_width))
 
-deploy = '/home/ubuntu/Data/xiaojun/models/vgg/VGG_ILSVRC_16_layers_deploy.prototxt'
-model = '/home/ubuntu/Data/xiaojun/models/vgg/VGG_ILSVRC_16_layers.caffemodel'
-mean = '/home/ubuntu/Data/xiaojun/models/vgg/ilsvrc_2012_mean.npy'
+deploy     = DATAPATH + 'VGG_ILSVRC_16_layers_deploy.prototxt'
+model      = DATAPATH + 'VGG_ILSVRC_16_layers.caffemodel'
+mean       = DATAPATH + 'ilsvrc_2012_mean.npy'
 
 class CNN(object):
 
