@@ -80,23 +80,3 @@ class CNN(object):
             all_feats[start:end] = feats
 
         return all_feats
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
