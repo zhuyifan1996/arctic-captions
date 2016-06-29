@@ -6,6 +6,7 @@ import time
 
 import numpy
 
+DATAPATH = os.getcwd() + os.sep + ".." + os.sep + "data" + os.sep
 
 def prepare_data(caps, features, worddict, maxlen=None, n_words=10000, zero_pad=False):
     # x: a list of sentences
@@ -58,7 +59,7 @@ def prepare_data(caps, features, worddict, maxlen=None, n_words=10000, zero_pad=
 
     return x, x_mask, y
 
-def load_data(load_train=True, load_dev=True, load_test=True, path='/home/ubuntu/Data/xiaojun/Toolbox/caption_asampat3090/data/flickr8k/'):
+def load_data(load_train=True, load_dev=True, load_test=True, path=DATAPATH):
     ''' Loads the dataset
 
     :type dataset: string

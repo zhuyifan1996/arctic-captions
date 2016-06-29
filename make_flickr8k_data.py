@@ -35,7 +35,7 @@ dictionary = vectorizer.vocabulary_
 dictionary_series = pd.Series(dictionary.values(), index=dictionary.keys()) + 2
 dictionary = dictionary_series.to_dict()
 
-with open(DATAPATH + 'Flickr8k_text' + os.sep + 'dictionary.pkl', 'w+') as f:
+with open(DATAPATH + 'dictionary.pkl', 'w+') as f:
     cPickle.dump(dictionary, f)
 
 images = pd.Series(annotations['image'].unique())
@@ -59,7 +59,7 @@ dev_idx = dev_image.map(lambda x: np.where(all_image==x)[0][0])
 
 cnn = CNN(deploy=vgg_deploy_path,
           model=vgg_model_path,
-          batch_size=20,
+          batch_size=2,
           width=224,
           height=224)
 
@@ -70,7 +70,7 @@ caption_image_id_train = caption_image_id[train_idx]
 captions_train = captions[train_idx]
 cap_train = zip(captions_train, caption_image_id_train)
 
-for start, end in zip(range(0, len(images_train)+100, 100), range(100, len(images_train)+100, 100)):
+for start, end in zip(range(0, len(images_train)+1, 1), range(1, len(images_train)+1, 1)):
     image_files = images_train[start:end]
     feat = cnn.get_features(image_list=image_files, layers='conv5_3', layer_sizes=[512,14,14])
     if start == 0:
@@ -79,6 +79,7 @@ for start, end in zip(range(0, len(images_train)+100, 100), range(100, len(image
         feat_flatten_list_train = scipy.sparse.vstack([feat_flatten_list_train, scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))])
 
     print "processing images %d to %d " % (start, end)
+
 
 with open(DATAPATH + 'flicker_8k_align.train.pkl', 'w+') as f:
     cPickle.dump(cap_train, f)
@@ -91,7 +92,7 @@ caption_image_id_test = caption_image_id[test_idx]
 captions_test = captions[test_idx]
 cap_test = zip(captions_test, caption_image_id_test)
 
-for start, end in zip(range(0, len(images_test)+100, 100), range(100, len(images_test)+100, 100)):
+for start, end in zip(range(0, len(images_test)+1, 1), range(1, len(images_test)+1, 1)):
     image_files = images_test[start:end]
     feat = cnn.get_features(image_list=image_files, layers='conv5_3', layer_sizes=[512,14,14])
     if start == 0:
@@ -112,7 +113,7 @@ caption_image_id_dev = caption_image_id[dev_idx]
 captions_dev = captions[dev_idx]
 cap_dev = zip(captions_dev, caption_image_id_dev)
 
-for start, end in zip(range(0, len(images_dev)+100, 100), range(100, len(images_dev)+100,  100)):
+for start, end in zip(range(0, len(images_dev)+1, 1), range(1, len(images_dev)+1,  1)):
     image_files = images_dev[start:end]
     feat = cnn.get_features(image_list=image_files, layers='conv5_3', layer_sizes=[512,14,14])
     if start == 0:
