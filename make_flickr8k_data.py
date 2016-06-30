@@ -9,6 +9,7 @@ import cPickle
 from sklearn.feature_extraction.text import CountVectorizer
 import pdb
 
+SMALL_DATA_SET = False
 DATAPATH = os.getcwd() + os.sep + ".." + os.sep + "data" + os.sep
 
 annotation_path     = DATAPATH + 'Flickr8k_text' + os.sep + 'Flickr8k.lemma.token.txt'
@@ -35,7 +36,7 @@ dictionary = vectorizer.vocabulary_
 dictionary_series = pd.Series(dictionary.values(), index=dictionary.keys()) + 2
 dictionary = dictionary_series.to_dict()
 
-with open(DATAPATH + 'Flickr8k_text' + os.sep + 'dictionary.pkl', 'w+') as f:
+with open(DATAPATH + 'dictionary.pkl', 'w+') as f:
     cPickle.dump(dictionary, f)
 
 images = pd.Series(annotations['image'].unique())
@@ -49,17 +50,25 @@ cap = zip(captions, caption_image_id)
 train_images = pd.read_table(train_image_list, sep='\t', header=None, names=['image'])
 train_image = train_images['image']
 train_idx = train_image.map(lambda x: np.where(all_image==x)[0][0])
+
 # ipdb.set_trace()
 test_images = pd.read_table(test_image_list, sep='\t', header=None, names=['image'])
 test_image = test_images['image']
 test_idx = test_image.map(lambda x: np.where(all_image==x)[0][0])
+
 dev_images = pd.read_table(dev_image_list, sep='\t', header=None, names=['image'])
 dev_image = dev_images['image']
 dev_idx = dev_image.map(lambda x: np.where(all_image==x)[0][0])
 
+# Only take the first couple images from the train/test/dev sets
+if SMALL_DATA_SET:
+    train_idx = train_idx[0:(min(len(train_idx), 10))]
+    dev_idx   = train_idx[0:(min(len(dev_idx), 10))]
+    test_idx  = dev_idx[0:(min(len(test_idx), 10))]
+
 cnn = CNN(deploy=vgg_deploy_path,
           model=vgg_model_path,
-          batch_size=20,
+          batch_size=2,
           width=224,
           height=224)
 
@@ -70,7 +79,7 @@ caption_image_id_train = caption_image_id[train_idx]
 captions_train = captions[train_idx]
 cap_train = zip(captions_train, caption_image_id_train)
 
-for start, end in zip(range(0, len(images_train)+100, 100), range(100, len(images_train)+100, 100)):
+for start, end in zip(range(0, len(images_train)+1, 1), range(1, len(images_train)+1, 1)):
     image_files = images_train[start:end]
     feat = cnn.get_features(image_list=image_files, layers='conv5_3', layer_sizes=[512,14,14])
     if start == 0:
@@ -79,6 +88,7 @@ for start, end in zip(range(0, len(images_train)+100, 100), range(100, len(image
         feat_flatten_list_train = scipy.sparse.vstack([feat_flatten_list_train, scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))])
 
     print "processing images %d to %d " % (start, end)
+
 
 with open(DATAPATH + 'flicker_8k_align.train.pkl', 'w+') as f:
     cPickle.dump(cap_train, f)
@@ -91,7 +101,7 @@ caption_image_id_test = caption_image_id[test_idx]
 captions_test = captions[test_idx]
 cap_test = zip(captions_test, caption_image_id_test)
 
-for start, end in zip(range(0, len(images_test)+100, 100), range(100, len(images_test)+100, 100)):
+for start, end in zip(range(0, len(images_test)+1, 1), range(1, len(images_test)+1, 1)):
     image_files = images_test[start:end]
     feat = cnn.get_features(image_list=image_files, layers='conv5_3', layer_sizes=[512,14,14])
     if start == 0:
@@ -112,7 +122,7 @@ caption_image_id_dev = caption_image_id[dev_idx]
 captions_dev = captions[dev_idx]
 cap_dev = zip(captions_dev, caption_image_id_dev)
 
-for start, end in zip(range(0, len(images_dev)+100, 100), range(100, len(images_dev)+100,  100)):
+for start, end in zip(range(0, len(images_dev)+1, 1), range(1, len(images_dev)+1,  1)):
     image_files = images_dev[start:end]
     feat = cnn.get_features(image_list=image_files, layers='conv5_3', layer_sizes=[512,14,14])
     if start == 0:
