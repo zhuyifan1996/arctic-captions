@@ -36,8 +36,8 @@ def main(params):
                            selector=params["selector"],
                            patience=10,
                            maxlen=100,
-                           batch_size=64,
-                           valid_batch_size=64,
+                           batch_size=1, #[Changed by Yifan] originally 64
+                           valid_batch_size=1, #[Changed by Yifan] originally 64
                            validFreq=2000,
                            dispFreq=1,
                            saveFreq=1000,
