@@ -9,6 +9,7 @@ import cPickle
 from sklearn.feature_extraction.text import CountVectorizer
 import pdb
 
+SMALL_DATA_SET = False
 DATAPATH = os.getcwd() + os.sep + ".." + os.sep + "data" + os.sep
 
 annotation_path     = DATAPATH + 'Flickr8k_text' + os.sep + 'Flickr8k.lemma.token.txt'
@@ -49,13 +50,21 @@ cap = zip(captions, caption_image_id)
 train_images = pd.read_table(train_image_list, sep='\t', header=None, names=['image'])
 train_image = train_images['image']
 train_idx = train_image.map(lambda x: np.where(all_image==x)[0][0])
+
 # ipdb.set_trace()
 test_images = pd.read_table(test_image_list, sep='\t', header=None, names=['image'])
 test_image = test_images['image']
 test_idx = test_image.map(lambda x: np.where(all_image==x)[0][0])
+
 dev_images = pd.read_table(dev_image_list, sep='\t', header=None, names=['image'])
 dev_image = dev_images['image']
 dev_idx = dev_image.map(lambda x: np.where(all_image==x)[0][0])
+
+# Only take the first couple images from the train/test/dev sets
+if SMALL_DATA_SET:
+    train_idx = train_idx[0:(min(len(train_idx), 10))]
+    dev_idx   = train_idx[0:(min(len(dev_idx), 10))]
+    test_idx  = dev_idx[0:(min(len(test_idx), 10))]
 
 cnn = CNN(deploy=vgg_deploy_path,
           model=vgg_model_path,
