@@ -4,8 +4,7 @@ import sys
 codegit_root = '/home/intuinno/codegit'
 
 sys.path.insert(0, codegit_root)
-
-from anandlib.dl.caffe_cnn import *
+from caffe import *
 import pandas as pd
 import numpy as np
 import os
@@ -18,12 +17,13 @@ from nltk.tokenize import TreebankWordTokenizer
 import pdb
 
 TRAIN_SIZE = 6000
-TEST_SIZE = 1000
+TEST_SIZE  = 1000
 
-annotation_path = '/home/intuinno/project/pointTeach/data/Flicker8k/Flickr8k.token.txt'
-vgg_deploy_path = '/home/intuinno/codegit/caffe/models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers_deploy.prototxt'
-vgg_model_path  = '/home/intuinno/codegit/caffe/models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers.caffemodel'
-flickr_image_path = '/home/intuinno/project/pointTeach/data/Flicker8k/preprocessedImages'
+caffe_root = "~/caffe/"
+annotation_path = 'data/Flicker8k/Flickr8k.token.txt'
+vgg_deploy_path = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers_deploy.prototxt'
+vgg_model_path  = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers.caffemodel'
+flickr_image_path = 'data/Flicker8k/preprocessedImages'
 feat_path='feat/flickr8k'
 
 def my_tokenizer(s):
@@ -31,7 +31,7 @@ def my_tokenizer(s):
 
 cnn = CNN(deploy=vgg_deploy_path,
           model=vgg_model_path,
-          batch_size=20,
+          batch_size=10,
           width=224,
           height=224)
 
