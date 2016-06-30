@@ -4,7 +4,7 @@ import sys
 codegit_root = '/home/intuinno/codegit'
 
 sys.path.insert(0, codegit_root)
-from caffe import *
+from cnn_util import CNN
 import pandas as pd
 import numpy as np
 import os
@@ -16,14 +16,15 @@ from sklearn.feature_extraction.text import CountVectorizer
 from nltk.tokenize import TreebankWordTokenizer
 import pdb
 
-TRAIN_SIZE = 6000
-TEST_SIZE  = 1000
+TRAIN_SIZE = 60
+TEST_SIZE  = 10
 
-caffe_root = "~/caffe/"
-annotation_path = 'data/Flicker8k/Flickr8k.token.txt'
+# Has to use Absolute Path.
+caffe_root = "/Users/Grendel/caffe/"
+annotation_path = '../data/Flickr8k_text/Flickr8k.token.txt'
 vgg_deploy_path = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers_deploy.prototxt'
 vgg_model_path  = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers.caffemodel'
-flickr_image_path = 'data/Flicker8k/preprocessedImages'
+flickr_image_path = '../data/Flicker8k_Dataset'
 feat_path='feat/flickr8k'
 
 def my_tokenizer(s):
@@ -61,7 +62,8 @@ with open('dictionary.pkl', 'wb') as f:
 images = pd.Series(annotations['image'].unique())
 image_id_dict = pd.Series(np.array(images.index), index=images)
 
-DEV_SIZE = len(images) - TRAIN_SIZE - TEST_SIZE
+# DEV_SIZE = len(images) - TRAIN_SIZE - TEST_SIZE
+DEV_SIZE = 10
 
 caption_image_id = annotations['image'].map(lambda x: image_id_dict[x]).values
 cap = zip(captions, caption_image_id)
@@ -73,7 +75,7 @@ train_idx = all_idx[0:TRAIN_SIZE]
 train_ext_idx = [i for idx in train_idx for i in xrange(idx*5, (idx*5)+5)]
 test_idx = all_idx[TRAIN_SIZE:TRAIN_SIZE+TEST_SIZE]
 test_ext_idx = [i for idx in test_idx for i in xrange(idx*5, (idx*5)+5)]
-dev_idx = all_idx[TRAIN_SIZE+TEST_SIZE:]
+dev_idx = all_idx[TRAIN_SIZE+TEST_SIZE:TRAIN_SIZE+TEST_SIZE+DEV_SIZE]
 dev_ext_idx = [i for idx in dev_idx for i in xrange(idx*5, (idx*5)+5)]
 
 ## TRAINING SET
