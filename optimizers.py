@@ -76,31 +76,33 @@ def rmsprop(lr, tparams, grads, inp, cost, hard_attn_up):
 # Theano implementation adapted from Soren Kaae Sonderby (https://github.com/skaae)
 # preprint: http://arxiv.org/abs/1412.6980
 def adam(lr, tparams, grads, inp, cost, hard_attn_up):
-    gshared = [theano.shared(p.get_value() * numpy.float64(0.), name='%s_grad'%k) for k, p in tparams.iteritems()]
+    from lasagne import utils
+    gshared = [theano.shared(p.get_value() * numpy.float32(0.), name='%s_grad'%k) for k, p in tparams.iteritems()]
     gsup = [(gs, g) for gs, g in zip(gshared, grads)]
 
     f_grad_shared = theano.function(inp, cost, updates=gsup+hard_attn_up)
-    lr0 = 0.0002
-    b1 = 0.1
-    b2 = 0.001
-    e = 1e-8
+    lr0 = utils.floatX(0.0002)
+    b1 = utils.floatX(0.1)
+    b2 = utils.floatX(0.001)
+    e = utils.floatX(1e-8)
     updates = []
-    i = theano.shared(numpy.float64(0.), strict=False)
-    i_t = i + 1.
-    fix1 = 1. - b1**(i_t)
-    fix2 = 1. - b2**(i_t)
+    i = theano.shared(numpy.float32(0.), strict=False,allow_downcast=True)
+    i_t = i + utils.floatX(1.)
+    fix1 = utils.floatX(1.) - b1**(i_t)
+    fix2 = utils.floatX(1.) - b2**(i_t)
     lr_t = lr0 * (tensor.sqrt(fix2) / fix1)
 
     for p, g in zip(tparams.values(), gshared):
-        m = theano.shared(p.get_value() * numpy.float64(0.), strict=False)
-        v = theano.shared(p.get_value() * numpy.float64(0.), strict=False)
-        m_t = (b1 * g) + ((1. - b1) * m)
-        v_t = (b2 * tensor.sqr(g)) + ((1. - b2) * v)
+        m = theano.shared(p.get_value() * numpy.float32(0.), strict=False,allow_downcast=True)
+        v = theano.shared(p.get_value() * numpy.float32(0.), strict=False,allow_downcast=True)
+        m_t = (b1 * g) + ((utils.floatX(1.) - b1) * m)
+        v_t = (b2 * tensor.sqr(g)) + ((utils.floatX(1.) - b2) * v)
+        print "\n\nv_t's type: {}, m_t's type: {}".format(v_t.type, m_t.type)
+        updates.append((m, m_t))
+        updates.append((v, v_t))
         print "\n\nm's type: {}, m_t's type: {}, v's type: {}, v_t's type: {}".format(m.type, m_t.type, v.type, v_t.type)
         g_t = m_t / (tensor.sqrt(v_t) + e)
         p_t = p - (lr_t * g_t)
-        updates.append((m, m_t))
-        updates.append((v, v_t))
         updates.append((p, p_t))
     updates.append((i, i_t))
     print "\n\ni's type: {}, i_t's type: {}".format(i.type, i_t.type)
