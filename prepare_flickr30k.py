@@ -1,3 +1,10 @@
+import sys
+
+
+codegit_root = '/home/intuinno/codegit'
+
+sys.path.insert(0, codegit_root)
+
 from anandlib.dl.caffe_cnn import *
 import pandas as pd
 import numpy as np
@@ -6,16 +13,20 @@ import scipy
 import json
 import cPickle
 from sklearn.feature_extraction.text import CountVectorizer
+from nltk.tokenize import TreebankWordTokenizer
 import pdb
 
 TRAIN_SIZE = 25000
-TEST_SIZE = 5000
+TEST_SIZE = 3000
 
 annotation_path = 'data/flickr30k/results_20130124.token'
-vgg_deploy_path = 'VGG_ILSVRC_16_layers_deploy.prototxt'
-vgg_model_path  = '/home/ubuntu/Data/xiaojun/models/vgg/VGG_ILSVRC_16_layers.caffemodel'
-flickr_image_path = '/home/ubuntu/Data/xiaojun/dataset/flickr30k/flickr30k-images'
-feat_path='feat/flickr30k'
+vgg_deploy_path = '/home/intuinno/codegit/caffe/models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers_deploy.prototxt'
+vgg_model_path  = '/home/intuinno/codegit/caffe/models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers.caffemodel'
+flickr_image_path = 'data/flickr30k/processedImages'
+
+def my_tokenizer(s):
+    return s.split()
+
 cnn = CNN(deploy=vgg_deploy_path,
           model=vgg_model_path,
           batch_size=20,
@@ -28,7 +39,7 @@ annotations['image'] = annotations['image'].map(lambda x: os.path.join(flickr_im
 
 captions = annotations['caption'].values
 
-vectorizer = CountVectorizer().fit(captions)
+vectorizer = CountVectorizer(lowercase=False, tokenizer=my_tokenizer).fit(captions)
 dictionary = vectorizer.vocabulary_
 dictionary_series = pd.Series(dictionary.values(), index=dictionary.keys()) + 2
 dictionary = dictionary_series.to_dict()
@@ -40,7 +51,6 @@ dictionary = OrderedDict(sorted(dictionary.items(), key=lambda x:x[1], reverse=T
 with open('data/flickr30k/dictionary.pkl', 'wb') as f:
     cPickle.dump(dictionary, f)
 
-pdb.set_trace()
 
 images = pd.Series(annotations['image'].unique())
 image_id_dict = pd.Series(np.array(images.index), index=images)

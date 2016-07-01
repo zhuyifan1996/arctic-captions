@@ -35,7 +35,6 @@ import flickr8k
 import flickr30k
 import coco
 
-
 # datasets: 'name', 'load_data: returns iterator', 'prepare_data: some preprocessing'
 datasets = {'flickr8k': (flickr8k.load_data, flickr8k.prepare_data),
             'flickr30k': (flickr30k.load_data, flickr30k.prepare_data),
@@ -939,7 +938,7 @@ def gen_sample(tparams, f_init, f_next, ctx0, options,
             # get the corresponding hypothesis and append the predicted word
             for idx, [ti, wi] in enumerate(zip(trans_indices, word_indices)):
                 new_hyp_samples.append(hyp_samples[ti]+[wi])
-                new_hyp_scores[idx] = copy.copy(costs[ti]) # copy in the cost of that hypothesis
+                new_hyp_scores[idx] = copy.copy(costs[idx]) # copy in the cost of that hypothesis
                 for lidx in xrange(options['n_layers_lstm']):
                     new_hyp_states[lidx].append(copy.copy(next_state[lidx][ti]))
                 for lidx in xrange(options['n_layers_lstm']):
@@ -1209,7 +1208,7 @@ def train(dim_word=100,  # word vector dimensionality
 
     # f_grad_shared computes the cost and updates adaptive learning rate variables
     # f_update updates the weights of the model
-    lr = tensor.scalar(name='lr')
+    lr = tensor.scalar(name='lr',dtype='float32')
     f_grad_shared, f_update = eval(optimizer)(lr, tparams, grads, inps, cost, hard_attn_updates)
 
     print 'Optimization'

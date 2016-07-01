@@ -1,68 +1,76 @@
-from anandlib.dl.caffe_cnn import *
+import sys
+
+
+codegit_root = '/home/intuinno/codegit'
+
+sys.path.insert(0, codegit_root)
+from cnn_util import CNN
 import pandas as pd
 import numpy as np
 import os
+import nltk
 import scipy
 import json
 import cPickle
 from sklearn.feature_extraction.text import CountVectorizer
+from nltk.tokenize import TreebankWordTokenizer
 import pdb
 
-TRAIN_SIZE = 25000
-TEST_SIZE = 5000
+# Has to use Absolute Path.
+caffe_root = "/Users/Grendel/caffe/"
+annotation_path = '../data/Flickr8k_text/Flickr8k.token.txt'
+vgg_deploy_path = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers_deploy.prototxt'
+vgg_model_path  = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers.caffemodel'
+flickr_image_path = '../data/Flicker8k_Dataset'
+feat_path='feat/flickr8k'
 
-annotation_path = 'data/flickr30k/results_20130124.token'
-vgg_deploy_path = 'VGG_ILSVRC_16_layers_deploy.prototxt'
-vgg_model_path  = '/home/ubuntu/Data/xiaojun/models/vgg/VGG_ILSVRC_16_layers.caffemodel'
-flickr_image_path = '/home/ubuntu/Data/xiaojun/dataset/flickr30k/flickr30k-images'
-feat_path='feat/flickr30k'
+def my_tokenizer(s):
+    return s.split()
+
 cnn = CNN(deploy=vgg_deploy_path,
           model=vgg_model_path,
-          batch_size=20,
+          batch_size=10,
           width=224,
           height=224)
 
+# Let's make dictionary
 annotations = pd.read_table(annotation_path, sep='\t', header=None, names=['image', 'caption'])
+captions = annotations['caption'].values
+words = nltk.FreqDist(' '.join(captions).split()).most_common()
+wordsDict = {words[i][0]:i+2 for i in range(len(words))}
+with open('data/flickr8k/dictionary.pkl', 'wb') as f:
+    cPickle.dump(wordsDict, f)
+
 annotations['image_num'] = annotations['image'].map(lambda x: x.split('#')[1])
 annotations['image'] = annotations['image'].map(lambda x: os.path.join(flickr_image_path,x.split('#')[0]))
-
-captions = annotations['caption'].values
-
-vectorizer = CountVectorizer().fit(captions)
-dictionary = vectorizer.vocabulary_
-dictionary_series = pd.Series(dictionary.values(), index=dictionary.keys()) + 2
-dictionary = dictionary_series.to_dict()
-
-# Sort dictionary in descending order
-from collections import OrderedDict
-dictionary = OrderedDict(sorted(dictionary.items(), key=lambda x:x[1], reverse=True))
-
-with open('data/flickr30k/dictionary.pkl', 'wb') as f:
-    cPickle.dump(dictionary, f)
-
-pdb.set_trace()
-
 images = pd.Series(annotations['image'].unique())
 image_id_dict = pd.Series(np.array(images.index), index=images)
-
-DEV_SIZE = len(images) - TRAIN_SIZE - TEST_SIZE
 
 caption_image_id = annotations['image'].map(lambda x: image_id_dict[x]).values
 cap = zip(captions, caption_image_id)
 
 # split up into train, test, and dev
+TRAIN_SIZE = 6000
+TEST_SIZE  = 1000
+DEV_SIZE = len(images) - TRAIN_SIZE - TEST_SIZE
+
+print(DEV_SIZE)
+
+# DEV_SIZE = 1000
 all_idx = range(len(images))
 np.random.shuffle(all_idx)
 train_idx = all_idx[0:TRAIN_SIZE]
 train_ext_idx = [i for idx in train_idx for i in xrange(idx*5, (idx*5)+5)]
 test_idx = all_idx[TRAIN_SIZE:TRAIN_SIZE+TEST_SIZE]
 test_ext_idx = [i for idx in test_idx for i in xrange(idx*5, (idx*5)+5)]
-dev_idx = all_idx[TRAIN_SIZE+TEST_SIZE:]
+dev_idx = all_idx[TRAIN_SIZE+TEST_SIZE:TRAIN_SIZE+TEST_SIZE+DEV_SIZE]
 dev_ext_idx = [i for idx in dev_idx for i in xrange(idx*5, (idx*5)+5)]
 
 ## TRAINING SET
 
 # Select training images and captions
+print(len(images))
+print(len(captions))
 images_train = images[train_idx]
 captions_train = captions[train_ext_idx]
 
@@ -84,9 +92,10 @@ for start, end in zip(range(0, len(images_train)+100, 100), range(100, len(image
 
     print "processing images %d to %d" % (start, end)
 
-with open('data/flickr30k/flicker_30k_align.train.pkl', 'wb') as f:
-    cPickle.dump(cap_train, f)
+with open('data/flickr8k/flicker_8k_align.train.pkl', 'wb') as f:
+    cPickle.dump(cap_train, f,-1)
     cPickle.dump(feat_flatten_list_train, f)
+    pdb.set_trace()
 
 ## TEST SET
 
@@ -112,7 +121,7 @@ for start, end in zip(range(0, len(images_test)+100, 100), range(100, len(images
 
     print "processing images %d to %d" % (start, end)
 
-with open('data/flickr30k/flicker_30k_align.test.pkl', 'wb') as f:
+with open('data/flickr8k/flicker_8k_align.test.pkl', 'wb') as f:
     cPickle.dump(cap_test, f)
     cPickle.dump(feat_flatten_list_test, f)
 
@@ -140,6 +149,6 @@ for start, end in zip(range(0, len(images_dev)+100, 100), range(100, len(images_
 
     print "processing images %d to %d" % (start, end)
 
-with open('data/flickr30k/flicker_30k_align.dev.pkl', 'wb') as f:
+with open('data/flickr8k/flicker_8k_align.dev.pkl', 'wb') as f:
     cPickle.dump(cap_dev, f)
     cPickle.dump(feat_flatten_list_dev, f)
