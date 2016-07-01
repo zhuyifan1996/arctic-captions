@@ -1,3 +1,4 @@
+.DS_Store
 *.pyc
 data/coco/val2014.zip
 data/flickr30k/flickr30k-images
