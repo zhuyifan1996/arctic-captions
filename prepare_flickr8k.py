@@ -16,9 +16,6 @@ from sklearn.feature_extraction.text import CountVectorizer
 from nltk.tokenize import TreebankWordTokenizer
 import pdb
 
-TRAIN_SIZE = 60
-TEST_SIZE  = 10
-
 # Has to use Absolute Path.
 caffe_root = "/Users/Grendel/caffe/"
 annotation_path = '../data/Flickr8k_text/Flickr8k.token.txt'
@@ -36,39 +33,30 @@ cnn = CNN(deploy=vgg_deploy_path,
           width=224,
           height=224)
 
+# Let's make dictionary
 annotations = pd.read_table(annotation_path, sep='\t', header=None, names=['image', 'caption'])
-annotations['image_num'] = annotations['image'].map(lambda x: x.split('#')[1])
-annotations['image'] = annotations['image'].map(lambda x: os.path.join(flickr_image_path,x.split('#')[0]))
-
 captions = annotations['caption'].values
-
 words = nltk.FreqDist(' '.join(captions).split()).most_common()
-
-wordsDict = {i+2: words[i][0] for i in range(len(words))}
-
-# vectorizer = CountVectorizer(token_pattern='\\b\\w+\\b').fit(captions)
-# dictionary = vectorizer.vocabulary_
-# dictionary_series = pd.Series(dictionary.values(), index=dictionary.keys()) + 2
-# dictionary = dictionary_series.to_dict()
-
-# # Sort dictionary in descending order
-# from collections import OrderedDict
-# dictionary = OrderedDict(sorted(dictionary.items(), key=lambda x:x[1], reverse=True))
-
-with open('dictionary.pkl', 'wb') as f:
+wordsDict = {words[i][0]:i+2 for i in range(len(words))}
+with open('data/flickr8k/dictionary.pkl', 'wb') as f:
     cPickle.dump(wordsDict, f)
 
-
+annotations['image_num'] = annotations['image'].map(lambda x: x.split('#')[1])
+annotations['image'] = annotations['image'].map(lambda x: os.path.join(flickr_image_path,x.split('#')[0]))
 images = pd.Series(annotations['image'].unique())
 image_id_dict = pd.Series(np.array(images.index), index=images)
-
-# DEV_SIZE = len(images) - TRAIN_SIZE - TEST_SIZE
-DEV_SIZE = 10
 
 caption_image_id = annotations['image'].map(lambda x: image_id_dict[x]).values
 cap = zip(captions, caption_image_id)
 
 # split up into train, test, and dev
+TRAIN_SIZE = 6000
+TEST_SIZE  = 1000
+DEV_SIZE = len(images) - TRAIN_SIZE - TEST_SIZE
+
+print(DEV_SIZE)
+
+# DEV_SIZE = 1000
 all_idx = range(len(images))
 np.random.shuffle(all_idx)
 train_idx = all_idx[0:TRAIN_SIZE]
@@ -81,6 +69,8 @@ dev_ext_idx = [i for idx in dev_idx for i in xrange(idx*5, (idx*5)+5)]
 ## TRAINING SET
 
 # Select training images and captions
+print(len(images))
+print(len(captions))
 images_train = images[train_idx]
 captions_train = captions[train_ext_idx]
 
