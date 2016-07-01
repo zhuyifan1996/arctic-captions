@@ -131,7 +131,7 @@ def main(model, saveto, k=5, normalize=False, zero_pad=False, n_process=5, datas
             # caps = _seqs2words(_retrieve_jobs(len(valid[1])))
             caps = _seqs2words(_retrieve_jobs(valid[1].shape[0]))
             # import pdb; pdb.set_trace()
-            with open(saveto+'.dev.txt', 'w') as f:
+            with open(saveto+'.dev.txt', 'w+') as f:
                 print >>f, '\n'.join(caps)
             print 'Done'
 
@@ -141,7 +141,7 @@ def main(model, saveto, k=5, normalize=False, zero_pad=False, n_process=5, datas
             # caps = _seqs2words(_retrieve_jobs(len(test[1])))
             caps = _seqs2words(_retrieve_jobs(test[1].shape[0]))
             # import pdb; pdb.set_trace()
-            with open(saveto+'.test.txt', 'w') as f:
+            with open(saveto+'.test.txt', 'w+') as f:
                 print >>f, '\n'.join(caps)
             print 'Done'
     # end processes

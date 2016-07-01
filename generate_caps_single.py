@@ -5,6 +5,9 @@ import pdb
 from capgen import init_params, get_dataset, build_sampler, gen_sample
 from util import load_params, init_tparams
 
+from lasagne import utils
+import theano
+
 # single instance of a sampling process
 def gen_model(idx, context, model, options, k, normalize, word_idict, sampling):
     import theano
@@ -52,7 +55,7 @@ def main(model, saveto, k=5, normalize=False, zero_pad=False, datasets='dev,test
                                              load_dev=True if 'dev' in datasets else False,
                                              load_test=True if 'test' in datasets else False)
     
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
     # <eos> means end of sequence (aka periods), UNK means unknown
     word_idict = dict()
     for kk, vv in worddict.iteritems():
@@ -83,6 +86,7 @@ def main(model, saveto, k=5, normalize=False, zero_pad=False, datasets='dev,test
                 cc0[:-1,:] = cc
             else:
                 cc0 = cc
+            cc0 = utils.floatX(cc0)
             resp = gen_model(idx, cc0, model, options, k, normalize, word_idict, sampling)
             caps[resp[0]] = resp[1]
             print 'Sample ', (idx+1), '/', contexts.shape[0], ' Done'
@@ -96,21 +100,23 @@ def main(model, saveto, k=5, normalize=False, zero_pad=False, datasets='dev,test
         if dd == 'train':
             print 'Training Set...',
             caps = _seqs2words(_process_examples(train[1]))
-            import pdb; pdb.set_trace()
-            with open(saveto+'.train.txt', 'w') as f:
+            # import pdb; pdb.set_trace()
+            with open(saveto+'.train.txt', 'w+') as f:
                 print >>f, '\n'.join(caps)
             print 'Done'
         if dd == 'dev':
             print 'Development Set...',
             caps = _seqs2words(_process_examples(valid[1]))
-            import pdb; pdb.set_trace()
-            with open(saveto+'.dev.txt', 'w') as f:
+            # import pdb; pdb.set_trace()
+            with open(saveto+'.dev.txt', 'w+') as f:
                 print >>f, '\n'.join(caps)
             print 'Done'
         if dd == 'test':
             print 'Test Set...',
             caps = _seqs2words(_process_examples(test[1]))
-            with open(saveto+'.test.txt', 'w') as f:
+            for cap in caps:
+                print cap 
+            with open(saveto+'.test.txt', 'w+') as f:
                 print >>f, '\n'.join(caps)
             print 'Done'
 
