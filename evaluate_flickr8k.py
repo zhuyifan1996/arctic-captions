@@ -72,7 +72,7 @@ if __name__ == "__main__":
                 "selector": True,
                 "use-dropout": True,
                 "use-dropout-lstm": False,
-                "save-per-epoch": False,
+                "save-per-epoch": True,
                 "reload": False}
     # get updates from command line
     args = parser.parse_args()
