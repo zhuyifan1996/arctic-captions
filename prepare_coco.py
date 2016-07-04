@@ -1,22 +1,4 @@
-# Setup 
-
-originalImagesPath = 'data/coco/originalImages'
-preprocessedImagesPath = 'data/coco/processedImages/'
-
-caffe_root = '/home/intuinno/codegit/caffe/'
-
-vgg_ilsvrc_19_layoutFileName = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers_deploy.prototxt'
-vgg_ilsvrc_19_modelFileName = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers.caffemodel'
-
-dataPath = 'data/coco/'
-annotation_path = dataPath + 'annotations/captions_train2014.json'
-splitFileName = dataPath + 'dataset_coco.json'
-
-experimentPrefix = '.exp1'
-
-
 # Import
-
 import pdb
 from sys import stdout
 import scipy
@@ -36,12 +18,32 @@ plt.rcParams['figure.figsize'] = (10, 10)
 plt.rcParams['image.interpolation'] = 'nearest'
 plt.rcParams['image.cmap'] = 'gray'
 
-import os
-
 import pandas as pd
 import nltk
 
-caffe.set_device(1)
+# Setup 
+CWD = os.getcwd() + "/"
+originalImagesPath     = CWD + '../../data/coco/originalImages'
+preprocessedImagesPath = CWD + '../../data/coco/processedImages/'
+
+caffe_root = '/Users/Grendel/caffe/'
+
+vgg_ilsvrc_19_layoutFileName = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers_deploy.prototxt'
+vgg_ilsvrc_19_modelFileName  = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers.caffemodel'
+
+dataPath        = CWD + '../../data/coco/'
+annotation_path = dataPath + 'annotations/'
+annotation_tr   = annotation_path + 'captions_train2014.json'
+splitFileName   = dataPath + 'dataset_coco.json'
+
+tr_data_path    = dataPath + 'train2014/'
+te_data_path    = dataPath + 'test2014/'
+val_data_path   = dataPath + 'val2014/'
+
+experimentPrefix = '.exp1'
+
+# Set up cafe and load the Net
+caffe.set_device(0)
 caffe.set_mode_gpu()
 
 net = caffe.Net(vgg_ilsvrc_19_layoutFileName,
@@ -55,53 +57,51 @@ transformer.set_mean('data', np.load(caffe_root + 'python/caffe/imagenet/ilsvrc_
 transformer.set_raw_scale('data', 255)  # the reference model operates on images in [0,255] range instead of [0,1]
 transformer.set_channel_swap('data', (2,1,0))  # the reference model has channels in BGR order instead of RGB
 
-# Create file list 
-# coco.devImages.txt 
-# coco.trainImages.txt 
-# coco.testImages.txt
-
+# Make the dictionary form the captions of the training data
 import json
-from pprint import pprint
-
-
-with open(splitFileName) as f:
-    data = json.load(f)
-
-df = pd.DataFrame(data['images'])
-
-files = [ 'dev','test','train']
-
-dataDict = {}
-
-dataDict['dev'] = df[df.split == 'val']
-dataDict['test'] = df[df.split == 'test']
-dataDict['restval'] = df[df.split == 'restval']
-dataDict['train'] = df[df.split == 'train']
-
-for f in files:
-    dataDict[f]['filename'].to_csv(dataPath + 'coco.' + f + 'Images.txt',index=False)
-    
-
-def buildCapDict(sentences):
-    return [s[u'raw'] for s in sentences ]
-
-df['captions'] = df.apply(lambda row: buildCapDict(row['sentences']), axis=1)
-
-capDict = df.loc[:,['filename', 'captions']].set_index('filename').to_dict()
-
-capDict = capDict['captions']
-
-# Let's build dictionary
-
-# Let's make dictionary
-
-corpus = df['captions'].values
-corpus2 = [' '.join(c) for c in corpus]
-corpus3 = ' '.join(corpus2)
-
+with open(annotation_tr,'r') as f:
+    caps_notes = json.load(f)
+    corpus3 = ' '.join([note['caption'] for note in caps_notes['annotations']])
 words = nltk.FreqDist(corpus3.split()).most_common()
 
 wordsDict = {words[i][0]:i+2 for i in range(len(words))}
 
 with open(dataPath + 'dictionary.pkl', 'wb') as f:
     pickle.dump(wordsDict, f)
+
+files = [ 'val','test','train']
+
+for fname in files:
+    print fname 
+    f = open(dataPath + "annotations/" + 'coco.' + fname + 'Images.txt')
+    counter = 0
+    
+    imageList = [i for i in f]
+    numImage = len(imageList)
+    
+    result = np.empty((numImage, 100352))
+
+    for i in range(numImage):
+        fn = imageList[i].rstrip()
+        net.blobs['data'].data[...] = transformer.preprocess('data', caffe.io.load_image( dataPath + fname + "2014/" +  fn))
+        out = net.forward()
+        feat = net.blobs['conv5_4'].data[0]
+        reshapeFeat = np.swapaxes(feat, 0,2)
+        reshapeFeat2 = np.reshape(reshapeFeat,(1,-1))
+        
+        counter += 1
+        stdout.write("\r%d" % counter)
+        stdout.flush()
+        result[i,:] = reshapeFeat2
+        
+    print result.shape
+    
+    resultSave = scipy.sparse.csr_matrix(result)
+    resultSave32 = resultSave.astype('float32')
+    
+    if fname == 'train':
+        np.savez(dataPath + 'coco_feature.' + fname + experimentPrefix, data=resultSave32.data, indices=resultSave32.indices, indptr=resultSave32.indptr, shape=resultSave.shape)
+    else:
+        fileName = open(dataPath + 'coco_feature.' + fname + experimentPrefix + '.pkl','wb')
+        pickle.dump(resultSave32, fileName ,-1)
+        fileName.close()
