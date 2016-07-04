@@ -69,39 +69,53 @@ wordsDict = {words[i][0]:i+2 for i in range(len(words))}
 with open(dataPath + 'dictionary.pkl', 'wb') as f:
     pickle.dump(wordsDict, f)
 
-files = [ 'val','test','train']
+# Select training images and captions
+import json
+with open(annotation_tr,'r') as f:
+    stdout.write("Loading data from annotations...\n")
+    caps_notes = json.load(f)
 
-for fname in files:
-    print fname 
-    f = open(dataPath + "annotations/" + 'coco.' + fname + 'Images.txt')
-    counter = 0
-    
-    imageList = [i for i in f]
-    numImage = len(imageList)
-    
-    result = np.empty((numImage, 100352))
+    stdout.write("Generating images data...\n")
+    images_train     = []
+    images_train_idx = []
+    for info in caps_notes['images']:
+        images_train.append(info['file_name'])
+        images_train_idx.append(info['id'])
 
-    for i in range(numImage):
-        fn = imageList[i].rstrip()
-        net.blobs['data'].data[...] = transformer.preprocess('data', caffe.io.load_image( dataPath + fname + "2014/" +  fn))
-        out = net.forward()
-        feat = net.blobs['conv5_4'].data[0]
-        reshapeFeat = np.swapaxes(feat, 0,2)
-        reshapeFeat2 = np.reshape(reshapeFeat,(1,-1))
-        
-        counter += 1
-        stdout.write("\r%d" % counter)
-        stdout.flush()
-        result[i,:] = reshapeFeat2
-        
-    print result.shape
-    
-    resultSave = scipy.sparse.csr_matrix(result)
-    resultSave32 = resultSave.astype('float32')
-    
-    if fname == 'train':
-        np.savez(dataPath + 'coco_feature.' + fname + experimentPrefix, data=resultSave32.data, indices=resultSave32.indices, indptr=resultSave32.indptr, shape=resultSave.shape)
+    stdout.write("Generating captions data...\n")
+    cap_train = [(note['caption'], images_train_idx.index(note['image_id'])) for note in caps_notes['annotations']]
+
+    stdout.write("Finished generating data...\n")
+
+# # Reindex the training images
+# images_train.index = xrange(TRAIN_SIZE)
+# image_id_dict_train = pd.Series(np.array(images_train.index), index=images_train)
+# # Create list of image ids corresponding to each caption
+# caption_image_id_train = [image_id_dict_train[img] for img in images_train for i in xrange(5)]
+# # Create tuples of caption and image id
+# cap_train = zip(captions_train, caption_image_id_train)
+
+stdout.write("Start extracting features...\n")
+for start, end in zip(range(0, len(images_train)+100, 100), range(100, len(images_train)+100, 100)):
+#     image_files = images_train[start:end]
+    image_files = images_train[start:end]
+    feat = cnn.get_features(image_list=image_files, layers='conv5_3', layer_sizes=[512,14,14])
+    if start == 0:
+        feat_flatten_list_train = scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))
     else:
-        fileName = open(dataPath + 'coco_feature.' + fname + experimentPrefix + '.pkl','wb')
-        pickle.dump(resultSave32, fileName ,-1)
-        fileName.close()
+        feat_flatten_list_train = scipy.sparse.vstack([feat_flatten_list_train, scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))])
+    stdout.write("processing images %d to %d\n" % (start, end))
+    stdout.flush()
+
+print "Saving indices information: i -> image_id \n"
+with open('../data/coco/coco_align.train.indices.pkl', 'wb') as f:
+    cPickle.dump(images_train_idx, f)
+    
+print "Saving features... \n"
+with open('../data/coco/coco_align.train.pkl', 'wb') as f:
+    cPickle.dump(cap_train, f,-1)
+    cPickle.dump(feat_flatten_list_train, f)
+
+
+
+
