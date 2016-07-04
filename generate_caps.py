@@ -46,6 +46,7 @@ def gen_model(queue, rqueue, pid, model, options, k, normalize, word_idict, samp
         sidx = numpy.argmin(score)
         return sample[sidx]
 
+    raise Exception("ganga")
     while True:
         req = queue.get()
         # exit signal
