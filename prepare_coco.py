@@ -1,161 +1,107 @@
-import sys
-
-
-codegit_root = '/home/intuinno/codegit'
-
-sys.path.insert(0, codegit_root)
-
-from anandlib.dl.caffe_cnn import *
-import pandas as pd
-import numpy as np
-import os
-import nltk
-import scipy
-import json
-import cPickle
-from sklearn.feature_extraction.text import CountVectorizer
-from nltk.tokenize import TreebankWordTokenizer
+# Import
 import pdb
+from sys import stdout
+import scipy
+import  cPickle as pickle
 
-TRAIN_SIZE = 6000
-TEST_SIZE = 1000
-
-annotation_path = '/home/intuinno/project/pointTeach/data/Flicker8k/Flickr8k.token.txt'
-vgg_deploy_path = '/home/intuinno/codegit/caffe/models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers_deploy.prototxt'
-vgg_model_path  = '/home/intuinno/codegit/caffe/models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers.caffemodel'
-flickr_image_path = '/home/intuinno/project/pointTeach/data/Flicker8k/preprocessedImages'
-feat_path='feat/flickr8k'
-
-def my_tokenizer(s):
-    return s.split()
-
-cnn = CNN(deploy=vgg_deploy_path,
-          model=vgg_model_path,
-          batch_size=20,
-          width=224,
-          height=224)
-
-annotations = pd.read_table(annotation_path, sep='\t', header=None, names=['image', 'caption'])
-annotations['image_num'] = annotations['image'].map(lambda x: x.split('#')[1])
-annotations['image'] = annotations['image'].map(lambda x: os.path.join(flickr_image_path,x.split('#')[0]))
-
-captions = annotations['caption'].values
-
-words = nltk.FreqDist(' '.join(captions).split()).most_common()
-
-wordsDict = {i+2: words[i][0] for i in range(len(words))}
-
-# vectorizer = CountVectorizer(token_pattern='\\b\\w+\\b').fit(captions)
-# dictionary = vectorizer.vocabulary_
-# dictionary_series = pd.Series(dictionary.values(), index=dictionary.keys()) + 2
-# dictionary = dictionary_series.to_dict()
-
-# # Sort dictionary in descending order
-# from collections import OrderedDict
-# dictionary = OrderedDict(sorted(dictionary.items(), key=lambda x:x[1], reverse=True))
-
-with open('dictionary.pkl', 'wb') as f:
-    cPickle.dump(wordsDict, f)
+import numpy as np
+import matplotlib.pyplot as plt
+%matplotlib inline
 
 
-images = pd.Series(annotations['image'].unique())
-image_id_dict = pd.Series(np.array(images.index), index=images)
+import sys
+sys.path.insert(0, caffe_root + 'python')
 
-DEV_SIZE = len(images) - TRAIN_SIZE - TEST_SIZE
+import caffe
 
-caption_image_id = annotations['image'].map(lambda x: image_id_dict[x]).values
-cap = zip(captions, caption_image_id)
+plt.rcParams['figure.figsize'] = (10, 10)
+plt.rcParams['image.interpolation'] = 'nearest'
+plt.rcParams['image.cmap'] = 'gray'
 
-# split up into train, test, and dev
-all_idx = range(len(images))
-np.random.shuffle(all_idx)
-train_idx = all_idx[0:TRAIN_SIZE]
-train_ext_idx = [i for idx in train_idx for i in xrange(idx*5, (idx*5)+5)]
-test_idx = all_idx[TRAIN_SIZE:TRAIN_SIZE+TEST_SIZE]
-test_ext_idx = [i for idx in test_idx for i in xrange(idx*5, (idx*5)+5)]
-dev_idx = all_idx[TRAIN_SIZE+TEST_SIZE:]
-dev_ext_idx = [i for idx in dev_idx for i in xrange(idx*5, (idx*5)+5)]
+import pandas as pd
+import nltk
 
-## TRAINING SET
+# Setup 
+CWD = os.getcwd() + "/"
+originalImagesPath     = CWD + '../../data/coco/originalImages'
+preprocessedImagesPath = CWD + '../../data/coco/processedImages/'
 
-# Select training images and captions
-images_train = images[train_idx]
-captions_train = captions[train_ext_idx]
+caffe_root = '/Users/Grendel/caffe/'
 
-# Reindex the training images
-images_train.index = xrange(TRAIN_SIZE)
-image_id_dict_train = pd.Series(np.array(images_train.index), index=images_train)
-# Create list of image ids corresponding to each caption
-caption_image_id_train = [image_id_dict_train[img] for img in images_train for i in xrange(5)]
-# Create tuples of caption and image id
-cap_train = zip(captions_train, caption_image_id_train)
+vgg_ilsvrc_19_layoutFileName = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers_deploy.prototxt'
+vgg_ilsvrc_19_modelFileName  = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers.caffemodel'
 
-for start, end in zip(range(0, len(images_train)+100, 100), range(100, len(images_train)+100, 100)):
-    image_files = images_train[start:end]
-    feat = cnn.get_features(image_list=image_files, layers='conv5_3', layer_sizes=[512,14,14])
-    if start == 0:
-        feat_flatten_list_train = scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))
+dataPath        = CWD + '../../data/coco/'
+annotation_path = dataPath + 'annotations/'
+annotation_tr   = annotation_path + 'captions_train2014.json'
+splitFileName   = dataPath + 'dataset_coco.json'
+
+tr_data_path    = dataPath + 'train2014/'
+te_data_path    = dataPath + 'test2014/'
+val_data_path   = dataPath + 'val2014/'
+
+experimentPrefix = '.exp1'
+
+# Set up cafe and load the Net
+caffe.set_device(0)
+caffe.set_mode_gpu()
+
+net = caffe.Net(vgg_ilsvrc_19_layoutFileName,
+                vgg_ilsvrc_19_modelFileName,
+                caffe.TEST)
+
+# input preprocessing: 'data' is the name of the input blob == net.inputs[0]
+transformer = caffe.io.Transformer({'data': net.blobs['data'].data.shape})
+transformer.set_transpose('data', (2,0,1))
+transformer.set_mean('data', np.load(caffe_root + 'python/caffe/imagenet/ilsvrc_2012_mean.npy').mean(1).mean(1)) # mean pixel
+transformer.set_raw_scale('data', 255)  # the reference model operates on images in [0,255] range instead of [0,1]
+transformer.set_channel_swap('data', (2,1,0))  # the reference model has channels in BGR order instead of RGB
+
+# Make the dictionary form the captions of the training data
+import json
+with open(annotation_tr,'r') as f:
+    caps_notes = json.load(f)
+    corpus3 = ' '.join([note['caption'] for note in caps_notes['annotations']])
+words = nltk.FreqDist(corpus3.split()).most_common()
+
+wordsDict = {words[i][0]:i+2 for i in range(len(words))}
+
+with open(dataPath + 'dictionary.pkl', 'wb') as f:
+    pickle.dump(wordsDict, f)
+
+files = [ 'val','test','train']
+
+for fname in files:
+    print fname 
+    f = open(dataPath + "annotations/" + 'coco.' + fname + 'Images.txt')
+    counter = 0
+    
+    imageList = [i for i in f]
+    numImage = len(imageList)
+    
+    result = np.empty((numImage, 100352))
+
+    for i in range(numImage):
+        fn = imageList[i].rstrip()
+        net.blobs['data'].data[...] = transformer.preprocess('data', caffe.io.load_image( dataPath + fname + "2014/" +  fn))
+        out = net.forward()
+        feat = net.blobs['conv5_4'].data[0]
+        reshapeFeat = np.swapaxes(feat, 0,2)
+        reshapeFeat2 = np.reshape(reshapeFeat,(1,-1))
+        
+        counter += 1
+        stdout.write("\r%d" % counter)
+        stdout.flush()
+        result[i,:] = reshapeFeat2
+        
+    print result.shape
+    
+    resultSave = scipy.sparse.csr_matrix(result)
+    resultSave32 = resultSave.astype('float32')
+    
+    if fname == 'train':
+        np.savez(dataPath + 'coco_feature.' + fname + experimentPrefix, data=resultSave32.data, indices=resultSave32.indices, indptr=resultSave32.indptr, shape=resultSave.shape)
     else:
-        feat_flatten_list_train = scipy.sparse.vstack([feat_flatten_list_train, scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))])
-
-    print "processing images %d to %d" % (start, end)
-
-with open('data/flickr8k/flicker_8k_align.train.pkl', 'wb') as f:
-    cPickle.dump(cap_train, f)
-    cPickle.dump(feat_flatten_list_train, f)
-
-## TEST SET
-
-# Select test images and captions
-images_test = images[test_idx]
-captions_test = captions[test_ext_idx]
-
-# Reindex the test images
-images_test.index = xrange(TEST_SIZE)
-image_id_dict_test = pd.Series(np.array(images_test.index), index=images_test)
-# Create list of image ids corresponding to each caption
-caption_image_id_test = [image_id_dict_test[img] for img in images_test for i in xrange(5)]
-# Create tuples of caption and image id
-cap_test = zip(captions_test, caption_image_id_test)
-
-for start, end in zip(range(0, len(images_test)+100, 100), range(100, len(images_test)+100, 100)):
-    image_files = images_test[start:end]
-    feat = cnn.get_features(image_list=image_files, layers='conv5_3', layer_sizes=[512,14,14])
-    if start == 0:
-        feat_flatten_list_test = scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))
-    else:
-        feat_flatten_list_test = scipy.sparse.vstack([feat_flatten_list_test, scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))])
-
-    print "processing images %d to %d" % (start, end)
-
-with open('data/flickr8k/flicker_8k_align.test.pkl', 'wb') as f:
-    cPickle.dump(cap_test, f)
-    cPickle.dump(feat_flatten_list_test, f)
-
-## DEV SET
-
-# Select dev images and captions
-images_dev = images[dev_idx]
-captions_dev = captions[dev_ext_idx]
-
-# Reindex the dev images
-images_dev.index = xrange(DEV_SIZE)
-image_id_dict_dev = pd.Series(np.array(images_dev.index), index=images_dev)
-# Create list of image ids corresponding to each caption
-caption_image_id_dev = [image_id_dict_dev[img] for img in images_dev for i in xrange(5)]
-# Create tuples of caption and image id
-cap_dev = zip(captions_dev, caption_image_id_dev)
-
-for start, end in zip(range(0, len(images_dev)+100, 100), range(100, len(images_dev)+100, 100)):
-    image_files = images_dev[start:end]
-    feat = cnn.get_features(image_list=image_files, layers='conv5_3', layer_sizes=[512,14,14])
-    if start == 0:
-        feat_flatten_list_dev = scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))
-    else:
-        feat_flatten_list_dev = scipy.sparse.vstack([feat_flatten_list_dev, scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))])
-
-    print "processing images %d to %d" % (start, end)
-
-with open('data/flickr8k/flicker_8k_align.dev.pkl', 'wb') as f:
-    cPickle.dump(cap_dev, f)
-    cPickle.dump(feat_flatten_list_dev, f)
+        fileName = open(dataPath + 'coco_feature.' + fname + experimentPrefix + '.pkl','wb')
+        pickle.dump(resultSave32, fileName ,-1)
+        fileName.close()
