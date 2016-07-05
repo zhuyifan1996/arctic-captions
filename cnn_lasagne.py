@@ -203,7 +203,7 @@ class CNN_Lasagne(object):
         """
         all_feats = np.zeros([len(image_list)] + layer_sizes)
         for idx, f in enumerate(image_list):
-            img = misc.imread(DATAPATH+DATASET+os.sep+f)
+            img = misc.imread(f)
             _, im = self.prepare_image(img)
             all_feats[idx,...] = np.array(lasagne.layers.get_output(self.net[layers], im, deterministic=True).eval())
             # assert feature.shape == (1, 512, 14, 14)

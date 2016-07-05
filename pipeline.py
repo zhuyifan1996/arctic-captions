@@ -50,7 +50,9 @@ def main(model, saveto, img_path, n_process = 1, pkl_name = None, k=5, sampling 
 
     print "Generating feature"
     feat_list = cnn.get_features(image_list=[img_path],layers='conv5_3', layer_sizes=[512,14,14])
-    feat = [scipy.sparse.csr_matrix(feat_list[0].flatten())]
+    feat= scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat_list)))
+
+    #feat = [scipy.sparse.csr_matrix(feat_list[0].flatten())]
     print "Done...\n "
 
     print "Loading dictionary"
