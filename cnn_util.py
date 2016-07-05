@@ -5,6 +5,7 @@ import skimage
 import ipdb
 import os
 
+CAFFE_ROOT = '/Users/Grendel/caffe/'
 DATAPATH = os.getcwd() + os.sep + ".." + os.sep + "data" + os.sep
 
 def crop_image(x, target_height=227, target_width=227):
@@ -27,9 +28,9 @@ def crop_image(x, target_height=227, target_width=227):
 
     return cv2.resize(resized_image, (target_height, target_width))
 
-deploy     = DATAPATH + 'VGG_ILSVRC_16_layers_deploy.prototxt'
-model      = DATAPATH + 'VGG_ILSVRC_16_layers.caffemodel'
-mean       = DATAPATH + 'ilsvrc_2012_mean.npy'
+deploy     = CAFFE_ROOT + 'models/VGG_ILSVRC_16_layers_deploy.prototxt'
+model      = CAFFE_ROOT + 'models/VGG_ILSVRC_16_layers.caffemodel'
+mean       = CAFFE_ROOT + 'python/caffe/imagenet/ilsvrc_2012_mean.npy'
 
 class CNN(object):
 
