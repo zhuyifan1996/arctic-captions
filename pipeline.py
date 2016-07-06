@@ -17,7 +17,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from nltk.tokenize import TreebankWordTokenizer
 import pdb
 
-from generate_caps import gen_model
+from generate_caps_single import gen_model
 from multiprocessing import Process, Queue
 
 from capgen import build_sampler, gen_sample, \
@@ -60,6 +60,7 @@ def main(model, saveto, img_path, n_process = 1, pkl_name = None, k=5, sampling 
     with open(DATA_PATH+'dictionary.pkl', 'rb') as f:
         worddict = pkl.load(f)
     #invert the dictionary
+    print "Dicionary has size {}.".format(len(worddict))
     word_idict = dict()
     for kk, vv in worddict.iteritems():
         word_idict[vv] = kk
@@ -68,14 +69,6 @@ def main(model, saveto, img_path, n_process = 1, pkl_name = None, k=5, sampling 
     print "Done..."
 
     print 'Generating caption'
-    # # create processes
-    # queue = Queue()
-    # rqueue = Queue()
-    # processes = [None] * n_process
-    # for midx in xrange(n_process):
-    #     processes[midx] = Process(target=gen_model,
-    #                               args=(queue,rqueue,midx,model,options,k,normalize,word_idict, sampling))
-    #     processes[midx].start()
 
     # index -> words
     def _seqs2words(caps):
@@ -89,72 +82,22 @@ def main(model, saveto, img_path, n_process = 1, pkl_name = None, k=5, sampling 
             capsw.append(' '.join(ww))
         return capsw
 
-    # # unsparsify, reshape, and queue
-    # def _send_jobs(contexts):
-    #     for idx, ctx in enumerate(contexts):
-    #         print "Sending job {}".format(idx)
-    #         cc = ctx.todense().reshape([14*14,512])
-    #         if zero_pad:
-    #             cc0 = np.zeros((cc.shape[0]+1, cc.shape[1])).astype('float32')
-    #             cc0[:-1,:] = cc
-    #         else:
-    #             cc0 = cc
-    #         queue.put((idx, cc0))
-    #         print "Finished sending"
+    def _process_examples(contexts):
+        caps = [None] * contexts.shape[0]
+        for idx, ctx in enumerate(contexts):
+            cc = ctx.todense().reshape([14*14,512])
+            if zero_pad:
+                cc0 = numpy.zeros((cc.shape[0]+1, cc.shape[1])).astype('float32')
+                cc0[:-1,:] = cc
+            else:
+                cc0 = cc
+            resp = gen_model(idx, cc0, model, options, k, normalize, word_idict, sampling)
+            caps[resp[0]] = resp[1]
+            print 'Sample ', (idx+1), '/', contexts.shape[0], ' Done'
+            print resp[1]
+        return caps
 
-    # # retrieve caption from process
-    # def _retrieve_jobs(n_samples):
-    #     print "Retrieving jobs"
-    #     pdb.set_trace()
-    #     caps = [None] * n_samples
-    #     for idx in xrange(n_samples):
-    #         resp = rqueue.get()
-    #         caps[resp[0]] = resp[1]
-    #         if np.mod(idx, 10) == 0:
-    #             print 'Sample ', (idx+1), '/', n_samples, ' Done'
-    #     print "Finished retrieving."
-    #     return caps
-
-    # _send_jobs(feat)
-    import theano
-    from theano import tensor
-    from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-
-    trng = RandomStreams(1234)
-    # this is zero indicate we are not using dropout in the graph
-    use_noise = theano.shared(np.float32(0.), name='use_noise')
-
-    # get the parameters
-    params = init_params(options)
-    params = load_params(model, params)
-    tparams = init_tparams(params)
-
-    # build the sampling computational graph
-    # see capgen.py for more detailed explanations
-    f_init, f_next = build_sampler(tparams, options, use_noise, trng, sampling=sampling)
-
-    def _gencap(cc0):
-        sample, score = gen_sample(tparams, f_init, f_next, cc0, options,
-                                   trng=trng, k=k, maxlen=200, stochastic=False)
-        # adjust for length bias
-        if normalize:
-            lengths = np.array([len(s) for s in sample])
-            score = score / lengths
-        sidx = np.argmin(score)
-        return sample[sidx]
-
-    caps = []
-    for idx, ctx in enumerate(feat):
-        cc = ctx.todense().reshape([14*14,512])
-        if zero_pad:
-            cc0 = np.zeros((cc.shape[0]+1, cc.shape[1])).astype('float32')
-            cc0[:-1,:] = cc
-        else:
-            cc0 = cc
-        cap = _gencap(cc0)
-        print "Caption: {}".format(cap)
-        caps.append(cap)
-    caps = _seqs2words(caps) 
+    caps=_seqs2words(_process_examples(feat))
 
     with open(saveto+'.txt', 'w') as f:
         print "Saving to {}".format(f.name)
