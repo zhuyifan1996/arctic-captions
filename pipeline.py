@@ -35,9 +35,6 @@ annotation_path = '../data/Flickr8k_text/Flickr8k.token.txt'
 flickr_image_path = '../data/Flicker8k_Dataset'
 DATA_PATH = 'data/flickr8k/'
 
-def my_tokenizer(s):
-    return s.split()
-
 def main(model, saveto, img_path, n_process = 1, pkl_name = None, k=5, sampling = False, normalize=False,zero_pad=False):
     if pkl_name is None:
         pkl_name = model
@@ -51,6 +48,10 @@ def main(model, saveto, img_path, n_process = 1, pkl_name = None, k=5, sampling 
     print "Generating feature"
     feat_list = cnn.get_features(image_list=[img_path],layers='conv5_3', layer_sizes=[512,14,14])
     feat= scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat_list)))
+
+    #try loading the picklified dev features
+    # import flickr8k
+    # _, (_, feat), _, _ = flickr8k.load_data(load_train=False, load_dev=True, load_test=False)
 
     #feat = [scipy.sparse.csr_matrix(feat_list[0].flatten())]
     print "Done...\n "
