@@ -23,7 +23,7 @@ CWD = os.getcwd() + "/"
 originalImagesPath     = CWD + '../data/coco/originalImages'
 preprocessedImagesPath = CWD + '../data/coco/processedImages/'
 
-caffe_root = '/Users/Grendel/caffe/'
+caffe_root = '/home/gy46/caffe/'
 
 vgg_ilsvrc_19_layoutFileName = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers_deploy.prototxt'
 vgg_ilsvrc_19_modelFileName  = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers.caffemodel'

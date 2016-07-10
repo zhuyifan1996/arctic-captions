@@ -71,7 +71,7 @@ if __name__ == "__main__":
                 "prev2out": True,
                 "ctx2out": True,
                 "learning-rate": 0.01,
-                "optimizer": "adam",
+                "optimizer": "rmsprop",
                 "selector": True,
                 "use-dropout": True,
                 "use-dropout-lstm": False,

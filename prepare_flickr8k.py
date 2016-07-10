@@ -1,6 +1,4 @@
 import sys
-
-
 codegit_root = '/home/intuinno/codegit'
 
 sys.path.insert(0, codegit_root)

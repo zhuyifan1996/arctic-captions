@@ -36,8 +36,8 @@ def main(params):
                            selector=params["selector"],
                            patience=10,
                            maxlen=100,
-                           batch_size=1, #[Changed by Yifan] originally 64
-                           valid_batch_size=1, #[Changed by Yifan] originally 64
+                           batch_size=64, #[Changed by Yifan] originally 64
+                           valid_batch_size=64, #[Changed by Yifan] originally 64
                            validFreq=2000,
                            dispFreq=1,
                            saveFreq=1000,
@@ -52,7 +52,7 @@ def main(params):
 if __name__ == "__main__":
     # These defaults should more or less reproduce the soft
     # alignment model for the MS COCO dataset
-    defaults = {"model": "flickr8k_deterministic_model.npz",
+    defaults = {"model": "flickr8k_deterministic_model.rmsprop.batch256.npz",
                 "attn-type": "deterministic",
                 "dim-word": 512,
                 "ctx-dim": 512,
@@ -68,7 +68,7 @@ if __name__ == "__main__":
                 "prev2out": True,
                 "ctx2out": True,
                 "learning-rate": 0.01,
-                "optimizer": "adam",
+                "optimizer": "rmsprop",
                 "selector": True,
                 "use-dropout": True,
                 "use-dropout-lstm": False,

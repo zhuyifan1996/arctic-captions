@@ -5,13 +5,14 @@ import skimage
 import ipdb
 import os
 
-CAFFE_ROOT = '/Users/Grendel/caffe/'
+CAFFE_ROOT = '/home/gy46/caffe/'
 DATAPATH = os.getcwd() + os.sep + ".." + os.sep + "data" + os.sep
 
 def crop_image(x, target_height=227, target_width=227):
     print x
     image = skimage.img_as_float(skimage.io.imread(x)).astype(np.float32)
 
+    print image.shape
     height, width, rgb = image.shape
     if width == height:
         resized_image = cv2.resize(image, (target_height,target_width))
@@ -49,6 +50,7 @@ class CNN(object):
 
     def get_net(self):
         caffe.set_mode_gpu()
+        caffe.set_device(3)
         net = caffe.Net(self.deploy, self.model, caffe.TEST)
 
         transformer = caffe.io.Transformer({'data':net.blobs['data'].data.shape})
