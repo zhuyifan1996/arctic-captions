@@ -1,23 +1,12 @@
-# Import
 import pdb
-from sys import stdout
+import sys
 import scipy
 import  cPickle as pickle
-
 import numpy as np
-import matplotlib.pyplot as plt
-%matplotlib inline
-
-
 import sys
-sys.path.insert(0, caffe_root + 'python')
-
+import json
 import caffe
-
-plt.rcParams['figure.figsize'] = (10, 10)
-plt.rcParams['image.interpolation'] = 'nearest'
-plt.rcParams['image.cmap'] = 'gray'
-
+from preprocess_util import preprocess_image
 import pandas as pd
 import nltk
 
@@ -42,66 +31,55 @@ val_data_path   = dataPath + 'val2014/'
 
 experimentPrefix = '.exp1'
 
-# Set up cafe and load the Net
-caffe.set_device(0)
-caffe.set_mode_gpu()
-
-net = caffe.Net(vgg_ilsvrc_19_layoutFileName,
-                vgg_ilsvrc_19_modelFileName,
-                caffe.TEST)
-
-# input preprocessing: 'data' is the name of the input blob == net.inputs[0]
-transformer = caffe.io.Transformer({'data': net.blobs['data'].data.shape})
-transformer.set_transpose('data', (2,0,1))
-transformer.set_mean('data', np.load(caffe_root + 'python/caffe/imagenet/ilsvrc_2012_mean.npy').mean(1).mean(1)) # mean pixel
-transformer.set_raw_scale('data', 255)  # the reference model operates on images in [0,255] range instead of [0,1]
-transformer.set_channel_swap('data', (2,1,0))  # the reference model has channels in BGR order instead of RGB
-
 # Make the dictionary form the captions of the training data
-import json
 with open(annotation_tr,'r') as f:
     caps_notes = json.load(f)
-    corpus3 = ' '.join([note['caption'] for note in caps_notes['annotations']])
+
+    # Make a reverse dictionary from image_id to captions
+
+"""
+Generate Dictionary
+"""
+corpus3 = ' '.join([note['caption'] for note in caps_notes['annotations']])
 words = nltk.FreqDist(corpus3.split()).most_common()
-
 wordsDict = {words[i][0]:i+2 for i in range(len(words))}
-
 with open(dataPath + 'dictionary.pkl', 'wb') as f:
     pickle.dump(wordsDict, f)
 
+"""
+Extract Features
+"""
+cnn = CNN(deploy=vgg_deploy_path,
+          model=vgg_model_path,
+          batch_size=20,
+          width=224,
+          height=224)
 files = [ 'val','test','train']
+data  = {
+    'val'   : {'image' : [], 'captions' : [] },
+    'test'  : {'image' : [], 'captions' : [] },
+    'train' : {'image' : [], 'captions' : [] }
+}
 
 for fname in files:
-    print fname 
-    f = open(dataPath + "annotations/" + 'coco.' + fname + 'Images.txt')
-    counter = 0
-    
-    imageList = [i for i in f]
-    numImage = len(imageList)
-    
-    result = np.empty((numImage, 100352))
+    # Make the dictionary form the captions of the training data
+    with open(annotation_tr,'r') as f:
+        caps_notes = json.load(f)
+        
+        img_dict  = { img['id']:img['file_name'] for img in caps_notes['images'] }
+        images    = img_dict.values()
+        img_idx   = img_dict.keys()
 
-    for i in range(numImage):
-        fn = imageList[i].rstrip()
-        net.blobs['data'].data[...] = transformer.preprocess('data', caffe.io.load_image( dataPath + fname + "2014/" +  fn))
-        out = net.forward()
-        feat = net.blobs['conv5_4'].data[0]
-        reshapeFeat = np.swapaxes(feat, 0,2)
-        reshapeFeat2 = np.reshape(reshapeFeat,(1,-1))
+        def dput(d, img_id, cap):
+            if not img_id in d:
+               d[img_id] = []
+            d[img_id].append(cap)
+        cap_dict  = {}
+        for note in caps_notes['annotations']:
+            dput(cap_dict, note['image_id'], note['caption'])
         
-        counter += 1
-        stdout.write("\r%d" % counter)
-        stdout.flush()
-        result[i,:] = reshapeFeat2
-        
-    print result.shape
-    
-    resultSave = scipy.sparse.csr_matrix(result)
-    resultSave32 = resultSave.astype('float32')
-    
-    if fname == 'train':
-        np.savez(dataPath + 'coco_feature.' + fname + experimentPrefix, data=resultSave32.data, indices=resultSave32.indices, indptr=resultSave32.indptr, shape=resultSave.shape)
-    else:
-        fileName = open(dataPath + 'coco_feature.' + fname + experimentPrefix + '.pkl','wb')
-        pickle.dump(resultSave32, fileName ,-1)
-        fileName.close()
+        captions = []
+        for img_id, ccp_lst in cap_dict:
+            captions += [ (cap, img_idx.index(img_id)) for cap in ccp_lst ] 
+
+    preprocess_image(cnn, captions, images, 'data/coco/coco.'+fname+'.pkl')
