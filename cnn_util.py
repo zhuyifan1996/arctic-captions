@@ -50,7 +50,7 @@ class CNN(object):
 
     def get_net(self):
         caffe.set_mode_gpu()
-        caffe.set_device(3)
+        caffe.set_device(2)
         net = caffe.Net(self.deploy, self.model, caffe.TEST)
 
         transformer = caffe.io.Transformer({'data':net.blobs['data'].data.shape})
