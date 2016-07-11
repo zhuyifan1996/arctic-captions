@@ -1,20 +1,12 @@
-# Import
 import pdb
-import json
-import os
-from sys import stdout
+import sys
 import scipy
 import  cPickle as pickle
-
 import numpy as np
-import matplotlib.pyplot as plt
-
 import sys
-
-plt.rcParams['figure.figsize'] = (10, 10)
-plt.rcParams['image.interpolation'] = 'nearest'
-plt.rcParams['image.cmap'] = 'gray'
-
+import json
+import caffe
+from preprocess_util import preprocess_image
 import pandas as pd
 import nltk
 
@@ -39,62 +31,56 @@ val_data_path   = dataPath + 'val2014/'
 
 experimentPrefix = '.exp1'
 
-# Set up cafe and load the Net
-sys.path.insert(0, caffe_root + 'python')
-import caffe
-from cnn_util import CNN
-cnn = CNN(deploy=vgg_ilsvrc_19_layoutFileName,
-          model=vgg_ilsvrc_19_modelFileName,
-          batch_size=2,
-          width=224,
-          height=224)
-
-# Load the training image & captions information
-import json
+# Make the dictionary form the captions of the training data
 with open(annotation_tr,'r') as f:
     stdout.write("Loading data from annotations...\n")
     caps_notes = json.load(f)
 
-    stdout.write("Make dictionary...\n")
-    corpus3 = ' '.join([note['caption'] for note in caps_notes['annotations']])
-    words = nltk.FreqDist(corpus3.split()).most_common()
-    wordsDict = {words[i][0]:i+2 for i in range(len(words))}
-    with open(dataPath + 'dictionary.pkl', 'wb') as f:
-        pickle.dump(wordsDict, f)
+    # Make a reverse dictionary from image_id to captions
 
-    stdout.write("Generating images data...\n")
-    images_train     = []
-    images_train_idx = {}
-    for info in caps_notes['images']:
-        images_train_idx[str(info['id'])] = len(images_train)
-        images_train.append(tr_data_path + str(info['file_name']))
+"""
+Generate Dictionary
+"""
+corpus3 = ' '.join([note['caption'] for note in caps_notes['annotations']])
+words = nltk.FreqDist(corpus3.split()).most_common()
+wordsDict = {words[i][0]:i+2 for i in range(len(words))}
+with open(dataPath + 'dictionary.pkl', 'wb') as f:
+    pickle.dump(wordsDict, f)
 
-    stdout.write("Generating captions data...\n")
-    cap_train = [(note['caption'], images_train_idx[str(note['image_id'])]) for note in caps_notes['annotations']]
+"""
+Extract Features
+"""
+cnn = CNN(deploy=vgg_deploy_path,
+          model=vgg_model_path,
+          batch_size=20,
+          width=224,
+          height=224)
+files = [ 'val','test','train']
+data  = {
+    'val'   : {'image' : [], 'captions' : [] },
+    'test'  : {'image' : [], 'captions' : [] },
+    'train' : {'image' : [], 'captions' : [] }
+}
 
-    stdout.write("Finished generating data...\n")
+for fname in files:
+    # Make the dictionary form the captions of the training data
+    with open(annotation_tr,'r') as f:
+        caps_notes = json.load(f)
+        
+        img_dict  = { img['id']:img['file_name'] for img in caps_notes['images'] }
+        images    = img_dict.values()
+        img_idx   = img_dict.keys()
 
-stdout.write("Start extracting features...\n")
-BATCH_SIZE = 10
-for start, end in zip(range(0, len(images_train)+BATCH_SIZE, BATCH_SIZE), range(BATCH_SIZE, len(images_train)+BATCH_SIZE, BATCH_SIZE)):
-    image_files = images_train[start:end]
-    feat = cnn.get_features(image_list=image_files, layers='conv5_3', layer_sizes=[512,14,14])
-    if start == 0:
-        feat_flatten_list_train = scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))
-    else:
-        feat_flatten_list_train = scipy.sparse.vstack([feat_flatten_list_train, scipy.sparse.csr_matrix(np.array(map(lambda x: x.flatten(), feat)))])
-    stdout.write("processing images %d to %d\n" % (start, end))
-    stdout.flush()
+        def dput(d, img_id, cap):
+            if not img_id in d:
+               d[img_id] = []
+            d[img_id].append(cap)
+        cap_dict  = {}
+        for note in caps_notes['annotations']:
+            dput(cap_dict, note['image_id'], note['caption'])
+        
+        captions = []
+        for img_id, ccp_lst in cap_dict:
+            captions += [ (cap, img_idx.index(img_id)) for cap in ccp_lst ] 
 
-print "Saving indices information: i -> image_id \n"
-with open(dataPath + 'coco_align.train.indices.pkl', 'wb') as f:
-    cPickle.dump(images_train_idx, f)
-
-print "Saving features... \n"
-with open(dataPath + 'coco_align.train.pkl', 'wb') as f:
-    cPickle.dump(cap_train, f,-1)
-    cPickle.dump(feat_flatten_list_train, f)
-
-
-
-
+    preprocess_image(cnn, captions, images, 'data/coco/coco.'+fname+'.pkl')
