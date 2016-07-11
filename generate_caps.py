@@ -80,7 +80,7 @@ def main(model, saveto, k=5, normalize=False, zero_pad=False, n_process=5, datas
         word_idict[vv] = kk
     word_idict[0] = '<eos>'
     word_idict[1] = 'UNK'
-    ipdb.set_trace()
+    # ipdb.set_trace()
 
     # create processes
     queue = Queue()
