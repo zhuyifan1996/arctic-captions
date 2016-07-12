@@ -1,5 +1,6 @@
+from cnn_util import CNN
 import pdb
-import sys
+import os
 import scipy
 import  cPickle as pickle
 import numpy as np
@@ -17,23 +18,25 @@ preprocessedImagesPath = CWD + '../data/coco/processedImages/'
 
 caffe_root = '/home/gy46/caffe/'
 
-vgg_ilsvrc_19_layoutFileName = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers_deploy.prototxt'
-vgg_ilsvrc_19_modelFileName  = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers.caffemodel'
+vgg_deploy_path = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers_deploy.prototxt'
+vgg_model_path  = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers.caffemodel'
 
 dataPath        = CWD + '../data/coco/'
 annotation_path = dataPath + 'annotations/'
 annotation_tr   = annotation_path + 'captions_train2014.json'
 splitFileName   = dataPath + 'dataset_coco.json'
 
-tr_data_path    = dataPath + 'train2014/'
-te_data_path    = dataPath + 'test2014/'
-val_data_path   = dataPath + 'val2014/'
+image_paths     = {
+    'train'     : dataPath + 'train2014/',
+    'test'      : dataPath + 'test2014/',
+    'val'       : dataPath + 'val2014/'
+}
 
 experimentPrefix = '.exp1'
 
 # Make the dictionary form the captions of the training data
 with open(annotation_tr,'r') as f:
-    stdout.write("Loading data from annotations...\n")
+    print "Loading data from annotations...\n"
     caps_notes = json.load(f)
 
     # Make a reverse dictionary from image_id to captions
@@ -65,22 +68,35 @@ data  = {
 for fname in files:
     # Make the dictionary form the captions of the training data
     with open(annotation_tr,'r') as f:
+        print "Loading caption information..."
         caps_notes = json.load(f)
-        
+        print "Done."
+
+        print "Making image dictionaries..."
         img_dict  = { img['id']:img['file_name'] for img in caps_notes['images'] }
         images    = img_dict.values()
         img_idx   = img_dict.keys()
+        print "Done."
 
-        def dput(d, img_id, cap):
-            if not img_id in d:
-               d[img_id] = []
-            d[img_id].append(cap)
-        cap_dict  = {}
+        print "Making caption dictionaries..."
+        cap_dict={}
         for note in caps_notes['annotations']:
-            dput(cap_dict, note['image_id'], note['caption'])
-        
-        captions = []
-        for img_id, ccp_lst in cap_dict:
-            captions += [ (cap, img_idx.index(img_id)) for cap in ccp_lst ] 
+            img_id = note['image_id']
+            if not img_id in cap_dict:
+               cap_dict[img_id] = []
+            cap_dict[img_id].append(note['caption'])
+        print "Done."
 
-    preprocess_image(cnn, captions, images, 'data/coco/coco.'+fname+'.pkl')
+        print "Making caption batch..." 
+        captions = []
+        for img_id, ccp_lst in cap_dict.iteritems():
+            captions += [ (cap, img_idx.index(img_id)) for cap in ccp_lst ] 
+        print "Done."
+
+        print "Making images batches..."
+        img_abs_paths = [ os.path.join(image_paths[fname], img) for img in images]
+        print 'Done.' 
+
+    print "Start preprocessing images..."
+    preprocess_image(cnn, captions, img_abs_paths, 'data/coco/coco.'+fname+'.pkl')
+    print "Done."
