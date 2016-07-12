@@ -23,7 +23,6 @@ vgg_model_path  = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers.caffem
 
 dataPath        = CWD + '../data/coco/'
 annotation_path = dataPath + 'annotations/'
-annotation_tr   = annotation_path + 'captions_train2014.json'
 splitFileName   = dataPath + 'dataset_coco.json'
 
 image_paths     = {
@@ -35,7 +34,7 @@ image_paths     = {
 experimentPrefix = '.exp1'
 
 # Make the dictionary form the captions of the training data
-with open(annotation_tr,'r') as f:
+with open(os.path.join(annotation_path, 'captions_train2014.json'),'r') as f:
     print "Loading data from annotations...\n"
     caps_notes = json.load(f)
 
@@ -67,7 +66,7 @@ data  = {
 
 for fname in files:
     # Make the dictionary form the captions of the training data
-    with open(annotation_tr,'r') as f:
+    with open(os.path.join(annotation_path, 'captions_'+fname+'2014.json'),'r') as f:
         print "Loading caption information..."
         caps_notes = json.load(f)
         print "Done."
@@ -94,7 +93,7 @@ for fname in files:
         print "Done."
 
         print "Making images batches..."
-        img_abs_paths = [ os.path.join(image_paths[fname], img) for img in images]
+        img_abs_paths = [ os.path.join(image_paths[fname], str(img)) for img in images]
         print 'Done.' 
 
     print "Start preprocessing images..."

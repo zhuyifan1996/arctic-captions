@@ -4,13 +4,15 @@ import numpy as np
 import skimage
 import ipdb
 import os
+from scipy import misc
 
 CAFFE_ROOT = '/home/gy46/caffe/'
 DATAPATH = os.getcwd() + os.sep + ".." + os.sep + "data" + os.sep
 
 def crop_image(x, target_height=227, target_width=227):
     print x
-    image = skimage.img_as_float(skimage.io.imread(x)).astype(np.float32)
+    # image = skimage.img_as_float(skimage.io.imread(x)).astype(np.float32)
+    image = misc.imread(x, mode='RGB').astype(np.float32)
 
     print image.shape
     height, width, rgb = image.shape
