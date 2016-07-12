@@ -7,6 +7,8 @@ import time
 import numpy
 import pdb
 
+CFD = os.path.dirname(os.path.realpath(__file__))
+
 def prepare_data(caps, features, worddict, maxlen=None, n_words=10000, zero_pad=False):
     # x: a list of sentences
     seqs = []
@@ -58,7 +60,7 @@ def prepare_data(caps, features, worddict, maxlen=None, n_words=10000, zero_pad=
 
     return x, x_mask, y
 
-def load_data(load_train=True, load_dev=True, load_test=True, path='./data/'):
+def load_data(load_train=True, load_dev=True, load_test=True, path=CFD+'/data/'):
     ''' Loads the dataset
 
     :type dataset: string
