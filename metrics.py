@@ -6,7 +6,7 @@ import argparse
 import logging
 
 import sys
-sys.path.append('/home/intuinno/codegit/coco-caption')
+sys.path.append('/Users/zhuyifan/Documents/2016 Summer Research/coco-caption')
 # this requires the coco-caption package, https://github.com/tylin/coco-caption
 from pycocoevalcap.bleu.bleu import Bleu
 from pycocoevalcap.rouge.rouge import Rouge
@@ -43,7 +43,7 @@ def score(ref, hypo):
     """
     scorers = [
         (Bleu(4), ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]),
-        (Meteor(),"METEOR"),
+        # (Meteor(),"METEOR"),
         (Rouge(), "ROUGE_L"),
         (Cider(), "CIDEr")
     ]
@@ -62,4 +62,5 @@ if __name__ == '__main__':
     logger = logging.getLogger('Computing Metrics:')
     args = parser.parse_args()
     ref, hypo = load_textfiles(args.references, args.hypothesis)
+    print len(ref)
     print score(ref, hypo)
