@@ -6,6 +6,7 @@ import time
 
 import numpy
 
+CFD = os.path.dirname(os.path.realpath(__file__))
 DATAPATH = os.getcwd() + os.sep + ".." + os.sep + "data" + os.sep
 
 def prepare_data(caps, features, worddict, maxlen=None, n_words=10000, zero_pad=False):
@@ -59,13 +60,13 @@ def prepare_data(caps, features, worddict, maxlen=None, n_words=10000, zero_pad=
 
     return x, x_mask, y
 
-def load_data(load_train=True, load_dev=True, load_test=True, path='data/flickr8k/'):
+def load_data(load_train=True, load_dev=True, load_test=True, path= (CFD+'/data/flickr8k/')):
     ''' Loads the dataset
 
     :type dataset: string
     :param dataset: the path to the dataset
     '''
-
+    print path
     #############
     # LOAD DATA #
     #############

@@ -6,7 +6,7 @@ Works on CPU with support for multi-process
 import argparse
 import numpy
 import cPickle as pkl
-import ipdb
+# import ipdb
 
 from capgen import build_sampler, gen_sample, \
                    load_params, \

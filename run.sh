@@ -8,6 +8,9 @@ python generate_caps.py  -d dev model/flickr8k/flickr8k_deterministic_model.rmsp
 
 #generate caps for a single, arbitrary image
 #python pipeline.py model/flickr8k/flickr8k_deterministic_model.rmsprop.batch256.npz result2/$(date +%Y-%m-%d:%H:%M:%S) ../data/Flicker8k_Dataset/232874193_c691df882d.jpg 
+
+# python pipeline.py model/flickr8k/flickr8k_deterministic_model.npz result2/$(date +%Y-%m-%d:%H:%M:%S) /Users/Grendel/Desktop/ML/textmatters/data/coco/train2014/COCO_train2014_000000411624.jpg 
+
 #python pipeline.py model/flickr8k/flickr8k_deterministic_model.rmsprop.batch256.npz result2/$(date +%Y-%m-%d:%H:%M:%S) /Users/zhuyifan/Documents/2016\ Summer\ Research/textmatters/data/coco/train2014/COCO_train2014_000000411624.jpg 
 
 #train network on flickr8k data

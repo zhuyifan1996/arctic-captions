@@ -7,6 +7,7 @@ import time
 import numpy
 from scipy.sparse import csr_matrix
 
+CFD = os.path.dirname(os.path.realpath(__file__))
 experimentPrefix = '.exp1'
 
 def save_sparse_csr(filename,array):
@@ -66,7 +67,7 @@ def prepare_data(caps, features, worddict, maxlen=None, n_words=10000, zero_pad=
 
     return x, x_mask, y
 
-def load_data(load_train=True, load_dev=True, load_test=True, path='./data/coco/'):
+def load_data(load_train=True, load_dev=True, load_test=True, path=(CFD+'/data/coco/')):
     ''' Loads the dataset
 
     :type dataset: string
