@@ -13,25 +13,20 @@ import nltk
 
 # Setup
 CWD = os.getcwd() + "/"
-originalImagesPath     = CWD + '../data/coco/originalImages'
-preprocessedImagesPath = CWD + '../data/coco/processedImages/'
 
-caffe_root = '/home/gy46/caffe/'
+caffe_root = '/home/yz542/caffe/'
 
 vgg_deploy_path = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers_deploy.prototxt'
 vgg_model_path  = caffe_root + 'models/vgg_ilsvrc_19/VGG_ILSVRC_19_layers.caffemodel'
 
 dataPath        = CWD + '../data/coco/'
 annotation_path = dataPath + 'annotations/'
-splitFileName   = dataPath + 'dataset_coco.json'
 
 image_paths     = {
     'train'     : dataPath + 'train2014/',
     'test'      : dataPath + 'test2014/',
     'val'       : dataPath + 'val2014/'
 }
-
-experimentPrefix = '.exp1'
 
 # Make the dictionary form the captions of the training data
 with open(os.path.join(annotation_path, 'captions_train2014.json'),'r') as f:
@@ -54,10 +49,11 @@ Extract Features
 """
 cnn = CNN(deploy=vgg_deploy_path,
           model=vgg_model_path,
-          batch_size=20,
+          batch_size=32,
           width=224,
           height=224)
-files = [ 'val','test','train']
+#files = [ 'val','test','train']
+files = [ 'val','train']
 data  = {
     'val'   : {'image' : [], 'captions' : [] },
     'test'  : {'image' : [], 'captions' : [] },

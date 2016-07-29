@@ -6,7 +6,7 @@ import ipdb
 import os
 from scipy import misc
 
-CAFFE_ROOT = '/home/gy46/caffe/'
+CAFFE_ROOT = '/home/yz542/caffe/'
 DATAPATH = os.getcwd() + os.sep + ".." + os.sep + "data" + os.sep
 
 def crop_image(x, target_height=227, target_width=227):
@@ -52,7 +52,7 @@ class CNN(object):
 
     def get_net(self):
         caffe.set_mode_gpu()
-        caffe.set_device(2)
+        caffe.set_device(0)
         net = caffe.Net(self.deploy, self.model, caffe.TEST)
 
         transformer = caffe.io.Transformer({'data':net.blobs['data'].data.shape})

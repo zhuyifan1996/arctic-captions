@@ -17,7 +17,7 @@ def preprocess_image(cnn, cap_set, images_set, save_to):
 
     with open(save_to, 'wb') as f:
         print "Saving caption data..."
-        cPickle.dump(cap_set, f,-1, protocol=cPickle.HIGHEST_PROTOCOL)
+        cPickle.dump(cap_set, f, protocol=cPickle.HIGHEST_PROTOCOL)
 
         print "Saving features..."
         cPickle.dump(feat_flatten_list, f, protocol=cPickle.HIGHEST_PROTOCOL)
